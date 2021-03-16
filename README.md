@@ -5,7 +5,3 @@
 
 flock allows processes to take out advisory locks on files using the
 `flock(2)` syscalls.
-
-The returned `flock.Locker` is a `sync.Locker`, except it also contains the
-ability to take out a shared lock (like a sync.RWLock). The API diverged since
-`flock.Locker.Unlock` will release either the Exclusive or Shared lock.
