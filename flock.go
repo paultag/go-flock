@@ -38,13 +38,13 @@ type Locker struct {
 	fd *os.File
 }
 
-// Lock will attempt to aquire an exclusive lock on the file, which
+// Lock will attempt to acquire an exclusive lock on the file, which
 // only a single process may hold this lock at a time.
 func (l *Locker) Lock() {
 	l.flock(syscall.LOCK_EX)
 }
 
-// SharedLock will attempt to aquire a shared lock on the file, which many
+// SharedLock will attempt to acquire a shared lock on the file, which many
 // processes may hold at the same time.
 func (l *Locker) SharedLock() {
 	l.flock(syscall.LOCK_SH)
