@@ -21,51 +21,81 @@
 package flock
 
 import (
-	"log"
+	"fmt"
 	"os"
 	"syscall"
 )
 
-// New will create a new Locker, which allows one to take out Locks on a file
-// using the `flock(2)` syscall.
-func New(file *os.File) (*Locker, error) {
-	return &Locker{
-		fd: file,
-	}, nil
+var (
+	// errWouldBlock will be returned if an operation would have blocked waiting
+	// for another process to release a lock.
+	//
+	// This will only be returned if LOCK_NB is set when requesting a lock.
+	errWouldBlock error = fmt.Errorf("flock: operation would block")
+)
+
+// Lock will request an *Exclusive* flock on a specific file. Only a single
+// process may hold the exclusive flock at a time.
+func Lock(file *os.File) error {
+	return flock(file, syscall.LOCK_EX)
 }
 
-// Locker will allow for the locking or unlocking of a flock, or file lock.
-type Locker struct {
-	fd *os.File
+// lockNB is unexported, since this function is hard to use correctly.
+//
+// In most cases, a user wants to do something while waiting for a lock (e.g.
+// print a message to stdout, etc), and for that, we've exposed a more safe
+// LockWaiter helper.
+//
+// lockNB will attempt to get an *Exclusive* lock, and return an EWOULDBLOCK
+// if the operation would become blocking.
+func lockNB(file *os.File) error {
+	return flock(file, syscall.LOCK_EX|syscall.LOCK_NB)
 }
 
-// Lock will attempt to acquire an exclusive lock on the file, which
-// only a single process may hold this lock at a time.
-func (l *Locker) Lock() {
-	l.flock(syscall.LOCK_EX)
+// LockShared will request a *Shared* flock on a specific file. Many processes
+// may hold a shared lock at the same time.
+func LockShared(file *os.File) error {
+	return flock(file, syscall.LOCK_SH)
 }
 
-// SharedLock will attempt to acquire a shared lock on the file, which many
-// processes may hold at the same time.
-func (l *Locker) SharedLock() {
-	l.flock(syscall.LOCK_SH)
+// lockSharedNB is unexported, since this function is hard to use correctly.
+//
+// In most cases, a user wants to do something while waiting for a lock (e.g.
+// print a message to stdout, etc), and for that, we've exposed a more safe
+// LockSharedWaiter helper.
+//
+// lockNB will attempt to get an *Exclusive* lock, and return an EWOULDBLOCK
+// if the operation would become blocking.
+func lockSharedNB(file *os.File) error {
+	return flock(file, syscall.LOCK_SH|syscall.LOCK_NB)
 }
 
-// Unlock will release an flock held by this process.
-func (l *Locker) Unlock() {
-	l.flock(syscall.LOCK_UN)
+// Unlock will release either an Exclusive or Shared lock held by this process.
+func Unlock(file *os.File) error {
+	return flock(file, syscall.LOCK_UN)
 }
 
-func (l *Locker) flock(op int) error {
-	var err error
-	for i := 0; i < 10; i++ {
-		err = syscall.Flock(int(l.fd.Fd()), op)
+func flock(file *os.File, op int) error {
+	for {
+		err := syscall.Flock(int(file.Fd()), op)
 		if err == nil {
 			return nil
 		}
+		switch err {
+		case syscall.EBADF:
+			return fmt.Errorf("flock: bad file descriptor")
+		case syscall.EINTR:
+			continue
+		case syscall.EINVAL:
+			return fmt.Errorf("flock: invalid operation provided")
+		case syscall.ENOLCK:
+			return fmt.Errorf("flock: kernel is out of memory for locks")
+		case syscall.EWOULDBLOCK:
+			return errWouldBlock
+		default:
+			return err
+		}
 	}
-	log.Printf("flock: operation failed with %s", err)
-	return err
 }
 
 // vim: foldmethod=marker
