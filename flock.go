@@ -56,14 +56,16 @@ func (l *Locker) Unlock() {
 	l.flock(syscall.LOCK_UN)
 }
 
-func (l *Locker) flock(op int) {
-	for {
-		err := syscall.Flock(int(l.fd.Fd()), op)
+func (l *Locker) flock(op int) error {
+	var err error
+	for i := 0; i < 10; i++ {
+		err = syscall.Flock(int(l.fd.Fd()), op)
 		if err == nil {
-			return
+			return nil
 		}
-		log.Printf("flock: error during operation: %s", err)
 	}
+	log.Printf("flock: operation failed with %s", err)
+	return err
 }
 
 // vim: foldmethod=marker
