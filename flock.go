@@ -26,7 +26,8 @@ import (
 	"syscall"
 )
 
-// New will create a new sync.Locker using `flock(2)` on a UNIX system.
+// New will create a new Locker, which allows one to take out Locks on a file
+// using the `flock(2)` syscall.
 func New(file *os.File) (*Locker, error) {
 	return &Locker{
 		fd: file,
