@@ -27,7 +27,7 @@ import (
 
 // lockWait will attempt to get a lock, and if that fails, spawn the provided
 // goroutine, and cancel the context when the lock is aquired.
-func lockWait(file *os.File, fLockNB, fLock func(*os.File) error, f func(context.Context)) error {
+func lockWait(file *os.File, fLockNB, fLock func(*os.File) error, f Waiter) error {
 	err := fLockNB(file)
 	if err == nil {
 		return nil
@@ -38,7 +38,7 @@ func lockWait(file *os.File, fLockNB, fLock func(*os.File) error, f func(context
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go f(ctx)
+	go f(ctx, file)
 
 	err = fLock(file)
 	cancel()
@@ -49,7 +49,7 @@ func lockWait(file *os.File, fLockNB, fLock func(*os.File) error, f func(context
 //
 // This function is started during a blocking operation, and the context will be
 // cancelled when the lock is finally aquired.
-type Waiter func(context.Context)
+type Waiter func(context.Context, *os.File)
 
 // LockWaiter will attempt to hold the *Exclusive* process flock for a specific
 // file. If this call blocks, the Water will be started, with a context that is
