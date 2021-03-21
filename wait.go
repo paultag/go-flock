@@ -26,7 +26,7 @@ import (
 )
 
 // lockWait will attempt to get a lock, and if that fails, spawn the provided
-// goroutine, and cancel the context when the lock is aquired.
+// goroutine, and cancel the context when the lock is acquired.
 func lockWait(file *os.File, fLockNB, fLock func(*os.File) error, f Waiter) error {
 	err := fLockNB(file)
 	if err == nil {
@@ -48,25 +48,25 @@ func lockWait(file *os.File, fLockNB, fLock func(*os.File) error, f Waiter) erro
 // Waiter is the function type expected by the flock.*LockWait functions.
 //
 // This function is started during a blocking operation, and the context will be
-// cancelled when the lock is finally aquired.
+// cancelled when the lock is finally acquired.
 type Waiter func(context.Context, *os.File)
 
 // LockWaiter will attempt to hold the *Exclusive* process flock for a specific
 // file. If this call blocks, the Water will be started, with a context that is
-// cancelled when the lock is *aquired*.
+// cancelled when the lock is *acquired*.
 //
 // This is used when a goroutine needs to be running whilst the lock is being
-// aquired.
+// acquired.
 func LockWaiter(file *os.File, waiter Waiter) error {
 	return lockWait(file, lockNB, Lock, waiter)
 }
 
 // LockSharedWaiter will attempt to hold the *Shared* process flock for a specific
 // file. If this call blocks, the Water will be started, with a context that is
-// cancelled when the lock is *aquired*.
+// cancelled when the lock is *acquired*.
 //
 // This is used when a goroutine needs to be running whilst the lock is being
-// aquired.
+// acquired.
 func LockSharedWaiter(file *os.File, waiter Waiter) error {
 	return lockWait(file, lockSharedNB, LockShared, waiter)
 }

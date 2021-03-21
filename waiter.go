@@ -34,8 +34,8 @@ import (
 // 'filename' (time)", and update it by rewritting the line and clearing
 // the line using ANSI escape codes.
 //
-// After the lock is aquired, this will write out a message saying the
-// lock has been aquired, and return.
+// After the lock is acquired, this will write out a message saying the
+// lock has been acquired, and return.
 func StdoutWaiter(ctx context.Context, file *os.File) {
 	start := time.Now()
 	tick := time.NewTicker(time.Second)
